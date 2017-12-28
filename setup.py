@@ -14,7 +14,7 @@ setup(
     url='https://github.com/david.dekoning/spiro',
     author='David de Koning',
     author_email='david.dekoning+spiro@gmail.com',
-
+    python_requires='>=3.6',
     classifiers=[  # Optional
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Education',
