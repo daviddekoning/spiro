@@ -1,0 +1,7 @@
+README.md
+setup.py
+spiro/__init__.py
+spiro.egg-info/PKG-INFO
+spiro.egg-info/SOURCES.txt
+spiro.egg-info/dependency_links.txt
+spiro.egg-info/top_level.txt
