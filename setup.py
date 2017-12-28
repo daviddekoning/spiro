@@ -9,9 +9,9 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='spiro',
-    version='0.1.1',
+    version='0.1.2',
     description='Module to draw spirographs with turtle graphics',
-    url='https://github.com/david.dekoning/spiro',
+    url='https://github.com/daviddekoning/spiro',
     author='David de Koning',
     author_email='david.dekoning+spiro@gmail.com',
     python_requires='>=3.6',

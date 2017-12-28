@@ -1,8 +1,8 @@
 Metadata-Version: 1.2
 Name: spiro
-Version: 0.1.1
+Version: 0.1.2
 Summary: Module to draw spirographs with turtle graphics
-Home-page: https://github.com/david.dekoning/spiro
+Home-page: https://github.com/daviddekoning/spiro
 Author: David de Koning
 Author-email: david.dekoning+spiro@gmail.com
 License: UNKNOWN
