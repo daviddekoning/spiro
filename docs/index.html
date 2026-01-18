@@ -444,10 +444,12 @@
         document.addEventListener('DOMContentLoaded', async () => {
             spirographs = JSON.parse(localStorage.getItem('spirographs')) || [];
             if (spirographs.length > 0) {
-                for (const params of spirographs) {
-                    await drawSpiro({ ...params, duration: 1 }, false);
+                const tempSpirographs = [...spirographs];
+                spirographs = [];
+                for (const params of tempSpirographs) {
+                    await drawSpiro({ ...params, duration: 1 }, true);
+                    redrawAll();
                 }
-                redrawAll();
             }
             updateUndoRedoButtons();
         });
