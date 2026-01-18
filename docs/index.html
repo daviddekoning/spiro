@@ -129,6 +129,14 @@
             <input type="number" id="theta_0" value="0" step="1">
         </div>
         <div class="control-group">
+            <label for="x_offset">X Offset</label>
+            <input type="number" id="x_offset" value="0" step="1">
+        </div>
+        <div class="control-group">
+            <label for="y_offset">Y Offset</label>
+            <input type="number" id="y_offset" value="0" step="1">
+        </div>
+        <div class="control-group">
             <label for="color">Color</label>
             <input type="color" id="color" value="#000000">
         </div>
@@ -180,7 +188,7 @@
             return Math.abs((a * b) / gcd(a, b));
         }
 
-        function spirocoord(r1, r2, offset, theta, theta_0, inside) {
+        function spirocoord(r1, r2, offset, theta, theta_0, inside, x_offset, y_offset) {
             const PI = Math.PI;
 
             let phi = (-1 * r1 / r2 * theta + (theta + theta_0)) % (2 * PI);
@@ -194,7 +202,7 @@
                 x = (Math.cos(theta + theta_0) * (r1 + r2)) + (Math.cos(phi) * (r2 - offset));
                 y = (Math.sin(theta + theta_0) * (r1 + r2)) + (Math.sin(phi) * (r2 - offset));
             }
-            return { x, y, phi };
+            return { x: x + x_offset, y: y + y_offset, phi };
         }
 
         function getMovingCircleCenter(r1, r2, theta, theta_0, inside) {
@@ -204,7 +212,7 @@
             return { x: cx, y: cy };
         }
 
-        function drawCurve(ctx, r1, r2, offset, theta_0, inside, limit, color, currentMaxTheta) {
+        function drawCurve(ctx, r1, r2, offset, theta_0, inside, limit, color, currentMaxTheta, x_offset, y_offset) {
             ctx.save();
             ctx.translate(canvasStatic.width / 2, canvasStatic.height / 2);
             ctx.scale(1, -1);
@@ -215,16 +223,16 @@
 
             const step = (Math.PI / 180) * 5;
 
-            const startPt = spirocoord(r1, r2, offset, 0, theta_0, inside);
+            const startPt = spirocoord(r1, r2, offset, 0, theta_0, inside, x_offset, y_offset);
             ctx.moveTo(startPt.x, startPt.y);
 
             let theta = 0;
             for (; theta < currentMaxTheta; theta += step) {
-                const pt = spirocoord(r1, r2, offset, theta, theta_0, inside);
+                const pt = spirocoord(r1, r2, offset, theta, theta_0, inside, x_offset, y_offset);
                 ctx.lineTo(pt.x, pt.y);
             }
 
-            const finalPt = spirocoord(r1, r2, offset, currentMaxTheta, theta_0, inside);
+            const finalPt = spirocoord(r1, r2, offset, currentMaxTheta, theta_0, inside, x_offset, y_offset);
             ctx.lineTo(finalPt.x, finalPt.y);
 
             ctx.stroke();
@@ -232,7 +240,7 @@
             return finalPt;
         }
 
-        function drawHelpers(ctx, r1, r2, theta_0, inside, currentMaxTheta, finalPt, opacity) {
+        function drawHelpers(ctx, r1, r2, theta_0, inside, currentMaxTheta, finalPt, opacity, x_offset, y_offset) {
             if (opacity <= 0) return;
 
             ctx.save();
@@ -246,13 +254,13 @@
 
             // Fixed Circle
             ctx.beginPath();
-            ctx.arc(0, 0, r1, 0, 2 * Math.PI);
+            ctx.arc(x_offset, y_offset, r1, 0, 2 * Math.PI);
             ctx.stroke();
 
             // Moving Circle
             const center = getMovingCircleCenter(r1, r2, currentMaxTheta, theta_0, inside);
             ctx.beginPath();
-            ctx.arc(center.x, center.y, r2, 0, 2 * Math.PI);
+            ctx.arc(center.x + x_offset, center.y + y_offset, r2, 0, 2 * Math.PI);
             ctx.stroke();
 
             // Pen Point
@@ -262,7 +270,7 @@
 
             // Line
             ctx.beginPath();
-            ctx.moveTo(center.x, center.y);
+            ctx.moveTo(center.x + x_offset, center.y + y_offset);
             ctx.lineTo(finalPt.x, finalPt.y);
             ctx.stroke();
 
@@ -280,6 +288,8 @@
             const r2Input = parseFloat(document.getElementById('r2').value);
             const offset = parseFloat(document.getElementById('offset').value);
             let theta_0_deg = parseFloat(document.getElementById('theta_0').value);
+            const x_offset = parseFloat(document.getElementById('x_offset').value);
+            const y_offset = -parseFloat(document.getElementById('y_offset').value);
             const color = document.getElementById('color').value;
             const inside = document.getElementById('inside').checked;
             const duration = parseFloat(document.getElementById('duration').value) * 1000;
@@ -312,7 +322,7 @@
                 ctxAnim.clearRect(0, 0, canvasAnim.width, canvasAnim.height);
 
                 // Draw curve on Animation Layer
-                const finalPt = drawCurve(ctxAnim, r1, r2, offset, theta_0, inside, limit, color, currentMaxTheta);
+                const finalPt = drawCurve(ctxAnim, r1, r2, offset, theta_0, inside, limit, color, currentMaxTheta, x_offset, y_offset);
 
                 // Handle Fading
                 let opacity = 1;
@@ -324,14 +334,14 @@
                 }
 
                 // Draw Helpers on Animation Layer
-                drawHelpers(ctxAnim, r1, r2, theta_0, inside, currentMaxTheta, finalPt, opacity);
+                drawHelpers(ctxAnim, r1, r2, theta_0, inside, currentMaxTheta, finalPt, opacity, x_offset, y_offset);
 
                 if (opacity > 0) {
                     animationId = requestAnimationFrame(animate);
                 } else {
                     // Animation and Fade complete.
                     // Commit to Static Layer
-                    drawCurve(ctxStatic, r1, r2, offset, theta_0, inside, limit, color, limit);
+                    drawCurve(ctxStatic, r1, r2, offset, theta_0, inside, limit, color, limit, x_offset, y_offset);
                     // Clear Animation Layer
                     ctxAnim.clearRect(0, 0, canvasAnim.width, canvasAnim.height);
                     animationId = null;
