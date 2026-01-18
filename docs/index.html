@@ -441,23 +441,15 @@
             }
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             spirographs = JSON.parse(localStorage.getItem('spirographs')) || [];
             if (spirographs.length > 0) {
-                let index = 0;
-                function drawNext() {
-                    if (index < spirographs.length) {
-                        const params = { ...spirographs[index], duration: 1 };
-                        drawSpiro(params, false).then(() => {
-                            redrawAll();
-                            index++;
-                            if (index < spirographs.length) {
-                                setTimeout(drawNext, 100);
-                            }
-                        });
-                    }
+                redrawAll(); // Draw the initial state instantly
+                for (const params of spirographs) {
+                    const animationParams = { ...params, duration: 1 };
+                    await drawSpiro(animationParams, false);
                 }
-                drawNext();
+                redrawAll(); // Redraw all at the end to ensure final state is clean
             }
             updateUndoRedoButtons();
         });
