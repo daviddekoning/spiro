@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spirograph</title>
+    <link rel="stylesheet" href="print.css" media="print">
     <style>
         body {
             font-family: sans-serif;
@@ -76,6 +77,13 @@
         button#clear:hover {
             background-color: #d32f2f;
         }
+        button#print {
+            background-color: #607d8b;
+            color: white;
+        }
+        button#print:hover {
+            background-color: #546e7a;
+        }
         #canvas-container {
             position: relative;
             width: 800px;
@@ -134,12 +142,15 @@
         </div>
         <button id="draw">Draw</button>
         <button id="clear">Clear</button>
+        <button id="print">Print</button>
     </div>
 
     <div id="canvas-container">
         <canvas id="persistentLayer" width="800" height="800"></canvas>
         <canvas id="animationLayer" width="800" height="800"></canvas>
     </div>
+
+    <div id="print-params"></div>
 
     <script>
         const canvasStatic = document.getElementById('persistentLayer');
@@ -149,6 +160,7 @@
 
         const drawBtn = document.getElementById('draw');
         const clearBtn = document.getElementById('clear');
+        const printBtn = document.getElementById('print');
 
         let animationId = null;
 
@@ -340,6 +352,32 @@
 
         drawBtn.addEventListener('click', drawSpiro);
         clearBtn.addEventListener('click', clearCanvas);
+        printBtn.addEventListener('click', printPage);
+
+        function printPage() {
+            const r1 = document.getElementById('r1').value;
+            const r2 = document.getElementById('r2').value;
+            const offset = document.getElementById('offset').value;
+            const theta_0 = document.getElementById('theta_0').value;
+            const color = document.getElementById('color').value;
+            const inside = document.getElementById('inside').checked;
+            const duration = document.getElementById('duration').value;
+
+            const paramsContainer = document.getElementById('print-params');
+            paramsContainer.innerHTML = `
+                <strong>Parameters:</strong>
+                <ul>
+                    <li>r1 (Outer): ${r1}</li>
+                    <li>r2 (Inner): ${r2}</li>
+                    <li>Offset: ${offset}</li>
+                    <li>Theta 0: ${theta_0}</li>
+                    <li>Color: ${color}</li>
+                    <li>Inside: ${inside}</li>
+                    <li>Duration (s): ${duration}</li>
+                </ul>
+            `;
+            window.print();
+        }
     </script>
 </body>
 </html>

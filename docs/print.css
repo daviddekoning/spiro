@@ -1,0 +1,41 @@
+@media print {
+  body {
+    background-color: white;
+  }
+
+  .controls, h1, button {
+    display: none;
+  }
+
+  #canvas-container {
+    width: 100%;
+    height: auto;
+    box-shadow: none;
+    border: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  canvas {
+    width: 90%;
+    height: auto;
+    max-width: 100%;
+  }
+
+  #print-params {
+    display: block !important;
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    font-family: sans-serif;
+    font-size: 12px;
+    color: black;
+  }
+}
+
+#print-params {
+  display: none;
+}
