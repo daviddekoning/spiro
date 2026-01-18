@@ -1,7 +1,7 @@
 from math import sin, cos, gcd, pi
 from turtle import *
 
-def spirocoord(r1,r2,offset,𝜗,𝜗_0=0,inside=True):
+def spirocoord(r1,r2,offset,𝜗,𝜗_0=0,inside=True,x_offset=0,y_offset=0):
     """
     Returns (x, y) coordinates of the pen in a spirograph at a given
     angle theta. The periodicity of the function depends on the ratio
@@ -21,7 +21,7 @@ def spirocoord(r1,r2,offset,𝜗,𝜗_0=0,inside=True):
         x = (cos(𝜗+𝜗_0) * (r1 + r2)) + (cos(𝜑) * (r2 - offset))
         y = (sin(𝜗+𝜗_0) * (r1 + r2)) + (sin(𝜑) * (r2 - offset))
     
-    return (x,y)
+    return (x+x_offset,y+y_offset)
 
 def drange(start, stop, step):
     r = start
@@ -41,6 +41,8 @@ class Spiro():
         self.theta_0 = 0
         self.color = 'black'
         self.inside = True
+        self.x_offset = 0
+        self.y_offset = 0
         
         self.reset()
         
@@ -49,11 +51,11 @@ class Spiro():
         c = pencolor()
         color(self.color)
         pu()
-        goto(spirocoord(self.r1,self.r2,self.offset,0,self.theta_0,self.inside))
+        goto(spirocoord(self.r1,self.r2,self.offset,0,self.theta_0,self.inside,self.x_offset,self.y_offset))
         pd()
         for 𝛼 in drange(0,lcm(self.r1,self.r2)/self.r1*2*pi,pi/180*5):
-            goto(*spirocoord(self.r1,self.r2,self.offset,𝛼,self.theta_0,self.inside))
-        goto(spirocoord(self.r1,self.r2,self.offset,0,self.theta_0,self.inside))
+            goto(*spirocoord(self.r1,self.r2,self.offset,𝛼,self.theta_0,self.inside,self.x_offset,self.y_offset))
+        goto(spirocoord(self.r1,self.r2,self.offset,0,self.theta_0,self.inside,self.x_offset,self.y_offset))
         pu()
         goto(0,0)
         pencolor(c)
