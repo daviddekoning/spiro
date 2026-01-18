@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spirograph</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            max-width: 800px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .control-group label {
+            font-size: 0.9em;
+            color: #666;
+        }
+        input[type="number"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 80px;
+        }
+        input[type="color"] {
+            border: none;
+            width: 50px;
+            height: 35px;
+            cursor: pointer;
+            padding: 0;
+            background: none;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s;
+            font-weight: bold;
+        }
+        button#draw {
+            background-color: #4CAF50;
+            color: white;
+        }
+        button#draw:hover {
+            background-color: #45a049;
+        }
+        button#clear {
+            background-color: #f44336;
+            color: white;
+        }
+        button#clear:hover {
+            background-color: #d32f2f;
+        }
+        canvas {
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Spirograph</h1>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="r1">r1 (Outer)</label>
+            <input type="number" id="r1" value="105" step="1">
+        </div>
+        <div class="control-group">
+            <label for="r2">r2 (Inner)</label>
+            <input type="number" id="r2" value="42" step="1">
+        </div>
+        <div class="control-group">
+            <label for="offset">Offset</label>
+            <input type="number" id="offset" value="15" step="1">
+        </div>
+        <div class="control-group">
+            <label for="theta_0">Theta 0 (deg)</label>
+            <input type="number" id="theta_0" value="0" step="1">
+        </div>
+        <div class="control-group">
+            <label for="color">Color</label>
+            <input type="color" id="color" value="#000000">
+        </div>
+        <div class="control-group" style="flex-direction: row; align-items: center; padding-top: 15px;">
+            <input type="checkbox" id="inside" checked>
+            <label for="inside" style="margin-left: 5px; cursor: pointer;">Inside</label>
+        </div>
+        <button id="draw">Draw</button>
+        <button id="clear">Clear</button>
+    </div>
+
+    <canvas id="spiroCanvas" width="800" height="800"></canvas>
+
+    <script>
+        const canvas = document.getElementById('spiroCanvas');
+        const ctx = canvas.getContext('2d');
+        const drawBtn = document.getElementById('draw');
+        const clearBtn = document.getElementById('clear');
+
+        function gcd(a, b) {
+            a = Math.abs(a);
+            b = Math.abs(b);
+            while (b) {
+                var t = b;
+                b = a % b;
+                a = t;
+            }
+            return a;
+        }
+
+        function lcm(a, b) {
+            if (a === 0 || b === 0) return 0;
+            return Math.abs((a * b) / gcd(a, b));
+        }
+
+        function spirocoord(r1, r2, offset, theta, theta_0, inside) {
+            // Python: 𝜑 = (-1 * r1 / r2 * (𝜗) + (𝜗+𝜗_0)) % (2 * pi)
+            const PI = Math.PI;
+
+            let phi = (-1 * r1 / r2 * theta + (theta + theta_0)) % (2 * PI);
+            // JS remainder can be negative
+            if (phi < 0) phi += (2 * PI);
+
+            let x, y;
+            if (inside) {
+                x = (Math.cos(theta + theta_0) * (r1 - r2)) + (Math.cos(phi) * (r2 - offset));
+                y = (Math.sin(theta + theta_0) * (r1 - r2)) + (Math.sin(phi) * (r2 - offset));
+            } else {
+                x = (Math.cos(theta + theta_0) * (r1 + r2)) + (Math.cos(phi) * (r2 - offset));
+                y = (Math.sin(theta + theta_0) * (r1 + r2)) + (Math.sin(phi) * (r2 - offset));
+            }
+            return { x, y };
+        }
+
+        function drawSpiro() {
+            const r1Input = parseFloat(document.getElementById('r1').value);
+            const r2Input = parseFloat(document.getElementById('r2').value);
+            const offset = parseFloat(document.getElementById('offset').value);
+            let theta_0_deg = parseFloat(document.getElementById('theta_0').value);
+            const color = document.getElementById('color').value;
+            const inside = document.getElementById('inside').checked;
+
+            // Convert deg to radians for calculation
+            const theta_0 = theta_0_deg * (Math.PI / 180);
+
+            ctx.save();
+            // Transform to Cartesian coordinates at center
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(1, -1);
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = color;
+            ctx.beginPath();
+
+            // Calculate loop range based on integers (as per Python package requirement)
+            const r1_int = Math.round(r1Input);
+            const r2_int = Math.round(r2Input);
+
+            // Limit = rotations * 2 * PI
+            // rotations = lcm(r1, r2) / r1
+            const limit = lcm(r1_int, r2_int) / r1_int * 2 * Math.PI;
+            const step = (Math.PI / 180) * 5; // 5 degrees step
+
+            // Use the actual float inputs for coordinate calculation to be smooth
+            const r1 = r1Input;
+            const r2 = r2Input;
+
+            // Move to first point (theta = 0)
+            const startPt = spirocoord(r1, r2, offset, 0, theta_0, inside);
+            ctx.moveTo(startPt.x, startPt.y);
+
+            // Loop
+            for (let alpha = 0; alpha < limit; alpha += step) {
+                const pt = spirocoord(r1, r2, offset, alpha, theta_0, inside);
+                ctx.lineTo(pt.x, pt.y);
+            }
+
+            // Close the loop
+            const endPt = spirocoord(r1, r2, offset, 0, theta_0, inside);
+            ctx.lineTo(endPt.x, endPt.y);
+
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        drawBtn.addEventListener('click', drawSpiro);
+        clearBtn.addEventListener('click', clearCanvas);
+    </script>
+</body>
+</html>
