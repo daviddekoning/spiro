@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spirograph</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            max-width: 800px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .control-group label {
+            font-size: 0.9em;
+            color: #666;
+        }
+        input[type="number"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 80px;
+        }
+        input[type="color"] {
+            border: none;
+            width: 50px;
+            height: 35px;
+            cursor: pointer;
+            padding: 0;
+            background: none;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s;
+            font-weight: bold;
+        }
+        button#draw {
+            background-color: #4CAF50;
+            color: white;
+        }
+        button#draw:hover {
+            background-color: #45a049;
+        }
+        button#clear {
+            background-color: #f44336;
+            color: white;
+        }
+        button#clear:hover {
+            background-color: #d32f2f;
+        }
+        #canvas-container {
+            position: relative;
+            width: 800px;
+            height: 800px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background: white;
+            border-radius: 4px;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            border-radius: 4px;
+        }
+        #persistentLayer {
+            z-index: 1;
+        }
+        #animationLayer {
+            z-index: 2;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Spirograph</h1>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="r1">r1 (Outer)</label>
+            <input type="number" id="r1" value="105" step="1">
+        </div>
+        <div class="control-group">
+            <label for="r2">r2 (Inner)</label>
+            <input type="number" id="r2" value="42" step="1">
+        </div>
+        <div class="control-group">
+            <label for="offset">Offset</label>
+            <input type="number" id="offset" value="15" step="1">
+        </div>
+        <div class="control-group">
+            <label for="theta_0">Theta 0 (deg)</label>
+            <input type="number" id="theta_0" value="0" step="1">
+        </div>
+        <div class="control-group">
+            <label for="color">Color</label>
+            <input type="color" id="color" value="#000000">
+        </div>
+        <div class="control-group">
+            <label for="duration">Duration (s)</label>
+            <input type="number" id="duration" value="10" step="0.5" min="0">
+        </div>
+        <div class="control-group" style="flex-direction: row; align-items: center; padding-top: 15px;">
+            <input type="checkbox" id="inside" checked>
+            <label for="inside" style="margin-left: 5px; cursor: pointer;">Inside</label>
+        </div>
+        <button id="draw">Draw</button>
+        <button id="clear">Clear</button>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="persistentLayer" width="800" height="800"></canvas>
+        <canvas id="animationLayer" width="800" height="800"></canvas>
+    </div>
+
+    <script>
+        const canvasStatic = document.getElementById('persistentLayer');
+        const ctxStatic = canvasStatic.getContext('2d');
+        const canvasAnim = document.getElementById('animationLayer');
+        const ctxAnim = canvasAnim.getContext('2d');
+
+        const drawBtn = document.getElementById('draw');
+        const clearBtn = document.getElementById('clear');
+
+        let animationId = null;
+
+        function gcd(a, b) {
+            a = Math.abs(a);
+            b = Math.abs(b);
+            while (b) {
+                var t = b;
+                b = a % b;
+                a = t;
+            }
+            return a;
+        }
+
+        function lcm(a, b) {
+            if (a === 0 || b === 0) return 0;
+            return Math.abs((a * b) / gcd(a, b));
+        }
+
+        function spirocoord(r1, r2, offset, theta, theta_0, inside) {
+            const PI = Math.PI;
+
+            let phi = (-1 * r1 / r2 * theta + (theta + theta_0)) % (2 * PI);
+            if (phi < 0) phi += (2 * PI);
+
+            let x, y;
+            if (inside) {
+                x = (Math.cos(theta + theta_0) * (r1 - r2)) + (Math.cos(phi) * (r2 - offset));
+                y = (Math.sin(theta + theta_0) * (r1 - r2)) + (Math.sin(phi) * (r2 - offset));
+            } else {
+                x = (Math.cos(theta + theta_0) * (r1 + r2)) + (Math.cos(phi) * (r2 - offset));
+                y = (Math.sin(theta + theta_0) * (r1 + r2)) + (Math.sin(phi) * (r2 - offset));
+            }
+            return { x, y, phi };
+        }
+
+        function getMovingCircleCenter(r1, r2, theta, theta_0, inside) {
+            const dist = inside ? (r1 - r2) : (r1 + r2);
+            const cx = Math.cos(theta + theta_0) * dist;
+            const cy = Math.sin(theta + theta_0) * dist;
+            return { x: cx, y: cy };
+        }
+
+        function drawCurve(ctx, r1, r2, offset, theta_0, inside, limit, color, currentMaxTheta) {
+            ctx.save();
+            ctx.translate(canvasStatic.width / 2, canvasStatic.height / 2);
+            ctx.scale(1, -1);
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = color;
+            ctx.beginPath();
+
+            const step = (Math.PI / 180) * 5;
+
+            const startPt = spirocoord(r1, r2, offset, 0, theta_0, inside);
+            ctx.moveTo(startPt.x, startPt.y);
+
+            let theta = 0;
+            for (; theta < currentMaxTheta; theta += step) {
+                const pt = spirocoord(r1, r2, offset, theta, theta_0, inside);
+                ctx.lineTo(pt.x, pt.y);
+            }
+
+            const finalPt = spirocoord(r1, r2, offset, currentMaxTheta, theta_0, inside);
+            ctx.lineTo(finalPt.x, finalPt.y);
+
+            ctx.stroke();
+            ctx.restore();
+            return finalPt;
+        }
+
+        function drawHelpers(ctx, r1, r2, theta_0, inside, currentMaxTheta, finalPt, opacity) {
+            if (opacity <= 0) return;
+
+            ctx.save();
+            ctx.translate(canvasStatic.width / 2, canvasStatic.height / 2);
+            ctx.scale(1, -1);
+
+            ctx.globalAlpha = opacity;
+            ctx.strokeStyle = '#cccccc';
+            ctx.fillStyle = '#cccccc';
+            ctx.lineWidth = 1;
+
+            // Fixed Circle
+            ctx.beginPath();
+            ctx.arc(0, 0, r1, 0, 2 * Math.PI);
+            ctx.stroke();
+
+            // Moving Circle
+            const center = getMovingCircleCenter(r1, r2, currentMaxTheta, theta_0, inside);
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, r2, 0, 2 * Math.PI);
+            ctx.stroke();
+
+            // Pen Point
+            ctx.beginPath();
+            ctx.arc(finalPt.x, finalPt.y, 4, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Line
+            ctx.beginPath();
+            ctx.moveTo(center.x, center.y);
+            ctx.lineTo(finalPt.x, finalPt.y);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawSpiro() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            // Clear animation layer at start of new draw
+            ctxAnim.clearRect(0, 0, canvasAnim.width, canvasAnim.height);
+
+            const r1Input = parseFloat(document.getElementById('r1').value);
+            const r2Input = parseFloat(document.getElementById('r2').value);
+            const offset = parseFloat(document.getElementById('offset').value);
+            let theta_0_deg = parseFloat(document.getElementById('theta_0').value);
+            const color = document.getElementById('color').value;
+            const inside = document.getElementById('inside').checked;
+            const duration = parseFloat(document.getElementById('duration').value) * 1000;
+
+            const theta_0 = theta_0_deg * (Math.PI / 180);
+
+            const r1_int = Math.round(r1Input);
+            const r2_int = Math.round(r2Input);
+            const limit = lcm(r1_int, r2_int) / r1_int * 2 * Math.PI;
+
+            const r1 = r1Input;
+            const r2 = r2Input;
+
+            let startTime = null;
+            let fadeStartTime = null;
+            const fadeDuration = 1000;
+
+            function animate(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const elapsed = timestamp - startTime;
+
+                let progress = Math.min(elapsed / duration, 1);
+
+                // If duration is 0, jump to end
+                if (duration === 0) progress = 1;
+
+                const currentMaxTheta = progress * limit;
+
+                // Clear Animation Layer
+                ctxAnim.clearRect(0, 0, canvasAnim.width, canvasAnim.height);
+
+                // Draw curve on Animation Layer
+                const finalPt = drawCurve(ctxAnim, r1, r2, offset, theta_0, inside, limit, color, currentMaxTheta);
+
+                // Handle Fading
+                let opacity = 1;
+                if (progress >= 1) {
+                    if (!fadeStartTime) fadeStartTime = timestamp;
+                    const fadeElapsed = timestamp - fadeStartTime;
+                    opacity = 1 - (fadeElapsed / fadeDuration);
+                    if (opacity < 0) opacity = 0;
+                }
+
+                // Draw Helpers on Animation Layer
+                drawHelpers(ctxAnim, r1, r2, theta_0, inside, currentMaxTheta, finalPt, opacity);
+
+                if (opacity > 0) {
+                    animationId = requestAnimationFrame(animate);
+                } else {
+                    // Animation and Fade complete.
+                    // Commit to Static Layer
+                    drawCurve(ctxStatic, r1, r2, offset, theta_0, inside, limit, color, limit);
+                    // Clear Animation Layer
+                    ctxAnim.clearRect(0, 0, canvasAnim.width, canvasAnim.height);
+                    animationId = null;
+                }
+            }
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function clearCanvas() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            ctxStatic.clearRect(0, 0, canvasStatic.width, canvasStatic.height);
+            ctxAnim.clearRect(0, 0, canvasAnim.width, canvasAnim.height);
+        }
+
+        drawBtn.addEventListener('click', drawSpiro);
+        clearBtn.addEventListener('click', clearCanvas);
+    </script>
+</body>
+</html>
